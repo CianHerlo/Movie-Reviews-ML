@@ -129,7 +129,7 @@ def main():  # Main Function
     # Task 4
     prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data)
     # Task 5
-    predict_sentiment(new_review, prior_pos, prior_neg, likelihoods)
+    predict_sentiment("This movie has huge potential and hits the mark in several ways", prior_pos, prior_neg, likelihoods)
     # Task 6
 
 
