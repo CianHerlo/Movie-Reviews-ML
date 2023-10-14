@@ -5,11 +5,12 @@
 #
 
 import pandas as pd
+import math
 
 FILE_NAME = 'movie_reviews.xlsx'
 
 
-def load_data(file):  # Task 1 part 1
+def load_excel_file(file):  # Task 1 part 1
     df = pd.read_excel(file)  # Reads Excel file and sets it to df (dataframe)
     return df
 
@@ -23,13 +24,13 @@ def separate_data(df):  # Task 1 part 2
     test_data = test_df['Review'].tolist()
     test_labels = test_df['Sentiment'].tolist()
 
-    num_positive_training = training_labels.count('positive')
-    num_negative_training = training_labels.count('negative')
-    num_positive_test = test_labels.count('positive')
-    num_negative_test = test_labels.count('negative')
+    num_pos_training = training_labels.count('positive')
+    num_neg_training = training_labels.count('negative')
+    num_pos_test = test_labels.count('positive')
+    num_neg_test = test_labels.count('negative')
 
-    print(f"Training Data - Positive | Negative: {num_positive_training} | {num_negative_training}")
-    print(f"Test Data     - Positive | Negative: {num_positive_test} | {num_negative_test}")
+    print(f"Training Data - Positive | Negative: {num_pos_training} | {num_neg_training}")
+    print(f"Test Data     - Positive | Negative: {num_pos_test} | {num_neg_test}")
 
     return training_data, training_labels, test_data, test_labels
 
@@ -71,33 +72,65 @@ def count_word_occurrences_in_reviews(review_set, selected_words):  # Task 3
     return word_presence_dict
 
 
-def calculate_priors_and_likelihoods(positive_reviews, negative_reviews):  # Task 4
-    total_reviews = len(positive_reviews) + len(negative_reviews)
-    prior_positive = len(positive_reviews) / total_reviews
-    prior_negative = len(negative_reviews) / total_reviews
-
-    alpha = 1  # Smoothing factor
-    all_reviews = positive_reviews + negative_reviews
-    unique_words = set(word for review in all_reviews for word in review.split())
+def calculate_priors_and_likelihoods(words_dict, training_data):  # Task 4
+    smooth_factor = 1
     likelihoods = {}
+    pos_reviews = []
+    neg_reviews = []
+    word_list = list(words_dict.keys())
+    for review in training_data:
+        if review.endswith("positive"):
+            pos_reviews.append(review)
+        elif review.endswith("negative"):
+            neg_reviews.append(review)
 
-    for word in unique_words:
-        count_in_positive = sum(1 for review in positive_reviews if word in review) + alpha
-        count_in_negative = sum(1 for review in negative_reviews if word in review) + alpha
+    total_reviews = len(pos_reviews) + len(neg_reviews)
+    prior_pos = len(pos_reviews) / total_reviews
+    prior_neg = len(neg_reviews) / total_reviews
 
-        likelihood_positive = count_in_positive / (len(positive_reviews) + alpha * len(unique_words))
-        likelihood_negative = count_in_negative / (len(negative_reviews) + alpha * len(unique_words))
+    for word in word_list:
+        count_pos = pos_reviews.count(word) + smooth_factor
+        count_neg = neg_reviews.count(word) + smooth_factor
+        likely_pos = count_pos / (len(pos_reviews) + smooth_factor * len(word_list))
+        likely_neg = count_neg / (len(neg_reviews) + smooth_factor * len(word_list))
+        likelihoods[word] = (likely_pos, likely_neg)
 
-        likelihoods[word] = (likelihood_positive, likelihood_negative)
+    return prior_pos, prior_neg, likelihoods
 
-    return prior_positive, prior_negative, likelihoods
+
+def predict_sentiment(new_review, prior_pos, prior_neg, likelihoods):  # Task 5
+    log_prior_pos = math.log(prior_pos)
+    log_prior_neg = math.log(prior_neg)
+    words = new_review.split()
+    log_likelihood_pos = 0
+    log_likelihood_neg = 0
+
+    for word in words:
+        if word in likelihoods:
+            log_likelihood_pos += math.log(likelihoods[word][0])
+            log_likelihood_neg += math.log(likelihoods[word][1])
+
+    log_posterior_pos = log_prior_pos + log_likelihood_pos
+    log_posterior_neg = log_prior_neg + log_likelihood_neg
+    if log_posterior_pos > log_posterior_neg:
+        return "positive"
+    else:
+        return "negative"
 
 
 def main():  # Main Function
-    main_df = load_data(FILE_NAME)
+    # Task 1
+    main_df = load_excel_file(FILE_NAME)
     training_data, training_labels, test_data, test_labels = separate_data(main_df)
+    # Task 2
     filter_word_list = remove_special_chars(training_data, 3, 5)
+    # Task 3
     word_presence_dict = count_word_occurrences_in_reviews(training_data, filter_word_list)
+    # Task 4
+    prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data)
+    # Task 5
+    predict_sentiment(new_review, prior_pos, prior_neg, likelihoods)
+    # Task 6
 
 
 if __name__ == '__main__':
