@@ -9,12 +9,12 @@ import pandas as pd
 FILE_NAME = 'movie_reviews.xlsx'
 
 
-def load_data(file):
+def load_data(file):  # Task 1 part 1
     df = pd.read_excel(file)  # Reads Excel file and sets it to df (dataframe)
     return df
 
 
-def separate_data(df):
+def separate_data(df):  # Task 1 part 2
     training_df = df[df['Split'] == 'train']
     test_df = df[df['Split'] == 'test']
 
@@ -34,7 +34,7 @@ def separate_data(df):
     return training_data, training_labels, test_data, test_labels
 
 
-def remove_special_chars(data_list, min_word_len, min_word_count):
+def remove_special_chars(data_list, min_word_len, min_word_count):  # Task 2
     word_count_dict = {}
 
     for review in data_list:
@@ -56,26 +56,48 @@ def remove_special_chars(data_list, min_word_len, min_word_count):
     return filtered_words
 
 
-def count_word_occurrences_in_reviews(review_set, selected_words):
-    word_occurrence_count = {}
+def count_word_occurrences_in_reviews(review_set, selected_words):  # Task 3
+    word_presence_dict = {}
     for word in selected_words:
-        word_occurrence_count[word] = 0
+        word_presence_dict[word] = 0
 
     for review in review_set:
         words_in_review = set(review.split())
 
         for word in selected_words:
             if word in words_in_review:
-                word_occurrence_count[word] += 1
+                word_presence_dict[word] += 1
 
-    return word_occurrence_count
+    return word_presence_dict
 
 
-def main():
+def calculate_priors_and_likelihoods(positive_reviews, negative_reviews):  # Task 4
+    total_reviews = len(positive_reviews) + len(negative_reviews)
+    prior_positive = len(positive_reviews) / total_reviews
+    prior_negative = len(negative_reviews) / total_reviews
+
+    alpha = 1  # Smoothing factor
+    all_reviews = positive_reviews + negative_reviews
+    unique_words = set(word for review in all_reviews for word in review.split())
+    likelihoods = {}
+
+    for word in unique_words:
+        count_in_positive = sum(1 for review in positive_reviews if word in review) + alpha
+        count_in_negative = sum(1 for review in negative_reviews if word in review) + alpha
+
+        likelihood_positive = count_in_positive / (len(positive_reviews) + alpha * len(unique_words))
+        likelihood_negative = count_in_negative / (len(negative_reviews) + alpha * len(unique_words))
+
+        likelihoods[word] = (likelihood_positive, likelihood_negative)
+
+    return prior_positive, prior_negative, likelihoods
+
+
+def main():  # Main Function
     main_df = load_data(FILE_NAME)
     training_data, training_labels, test_data, test_labels = separate_data(main_df)
     filter_word_list = remove_special_chars(training_data, 3, 5)
-    word_occurrence_count = count_word_occurrences_in_reviews(training_data, filter_word_list)
+    word_presence_dict = count_word_occurrences_in_reviews(training_data, filter_word_list)
 
 
 if __name__ == '__main__':
