@@ -34,9 +34,48 @@ def separate_data(df):
     return training_data, training_labels, test_data, test_labels
 
 
+def remove_special_chars(data_list, min_word_len, min_word_count):
+    word_count_dict = {}
+
+    for review in data_list:
+        review = review.lower()
+        words = review.split()
+
+        for word in words:
+            if len(word) >= min_word_len:
+                if word in word_count_dict:
+                    word_count_dict[word] += 1
+                else:
+                    word_count_dict[word] = 1
+
+    filtered_words = []
+    for word, count in word_count_dict.items():
+        if count >= min_word_count:
+            filtered_words.append(word)
+
+    return filtered_words
+
+
+def count_word_occurrences_in_reviews(review_set, selected_words):
+    word_occurrence_count = {}
+    for word in selected_words:
+        word_occurrence_count[word] = 0
+
+    for review in review_set:
+        words_in_review = set(review.split())
+
+        for word in selected_words:
+            if word in words_in_review:
+                word_occurrence_count[word] += 1
+
+    return word_occurrence_count
+
+
 def main():
     main_df = load_data(FILE_NAME)
     training_data, training_labels, test_data, test_labels = separate_data(main_df)
+    filter_word_list = remove_special_chars(training_data, 3, 5)
+    word_occurrence_count = count_word_occurrences_in_reviews(training_data, filter_word_list)
 
 
 if __name__ == '__main__':
