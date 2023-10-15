@@ -70,7 +70,7 @@ def filter_reviews(reviews, min_word_length, min_word_appearances):
     return filtered_words
 
 
-def count_word_occurrences_in_reviews(review_set, filtered_words):  # Task 3
+def count_word_occurrences_in_reviews(review_set, review_labels, filtered_words):  # Task 3
     word_presence_dict = {}
     for word in filtered_words:
         word_presence_dict[word] = 0
@@ -188,7 +188,7 @@ def main():  # Main Function
     # Task 2
     filter_word_list = filter_reviews(training_data, 6, 50)
     # Task 3
-    word_presence_dict = count_word_occurrences_in_reviews(training_data, filter_word_list)
+    word_presence_dict = count_word_occurrences_in_reviews(training_data, training_labels, filter_word_list)
     # Task 4
     prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data,
                                                                          training_labels)
