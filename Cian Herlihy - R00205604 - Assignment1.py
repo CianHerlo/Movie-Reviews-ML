@@ -39,6 +39,12 @@ def separate_data(df):  # Task 1 part 2
     return training_data, training_labels, test_data, test_labels
 
 
+def count_positive_negative_reviews(df):
+    sum_pos = df['Sentiment'].eq('positive').sum()
+    sum_neg = df['Sentiment'].eq('negative').sum()
+    return sum_pos, sum_neg
+
+
 def filter_reviews(reviews, min_word_length, min_word_appearances):
     # Create a dictionary to keep track of word counts
     word_counts = {}
@@ -128,73 +134,25 @@ def calculate_priors_and_likelihoods(words_dict, training_data, training_labels)
     return prior_pos, prior_neg, likelihoods
 
 
-def predict_sentiment(new_review, prior_pos, prior_neg, likelihoods):  # Task 5
-    log_prior_pos = math.log(prior_pos)
-    log_prior_neg = math.log(prior_neg)
-    words = new_review.split()
-    log_likelihood_pos = 0
-    log_likelihood_neg = 0
+def calculate_likelihoods(word_list, pos_counts, neg_counts):  # Task 4 part 1
+    likelihoods = {}
 
-    for word in words:
-        if word in likelihoods:
-            log_likelihood_pos += math.log(likelihoods[word][0])
-            log_likelihood_neg += math.log(likelihoods[word][1])
+    for word in word_list:
+        total_word_count = pos_counts.get(word, 0) + neg_counts.get(word, 0)
+        if total_word_count == 0:
+            pos_likelihood = neg_likelihood = 0
+        else:
+            pos_likelihood = pos_counts.get(word, 0) / total_word_count
+            neg_likelihood = neg_counts.get(word, 0) / total_word_count
+        likelihoods[word] = (pos_likelihood, neg_likelihood)
 
-    log_posterior_pos = log_prior_pos + log_likelihood_pos
-    log_posterior_neg = log_prior_neg + log_likelihood_neg
-    if log_posterior_pos > log_posterior_neg:
-        prediction = "positive"
-    else:
-        prediction = "negative"
-
-    return prediction
+    return likelihoods
 
 
-def k_fold_cross_validation(classifier, data, labels, k):  # Task 6 part 1
-    accuracies = []
-    kf = model_selection.KFold(n_splits=k, shuffle=True, random_state=42)
-
-    for train_index, eval_index in kf.split(data):
-        train_data, eval_data = [data[i] for i in train_index], [data[i] for i in eval_index]
-        train_labels, eval_labels = [labels[i] for i in train_index], [labels[i] for i in eval_index]
-
-        classifier.fit(train_data, train_labels)
-        predictions = classifier.predict(eval_data)
-
-        accuracy = metrics.accuracy_score(eval_labels, predictions)
-        accuracies.append(accuracy)
-
-    mean_accuracy = sum(accuracies) / len(accuracies)
-    return mean_accuracy
-
-
-def find_optimal_word_length_parameter(classifier, data, labels, k):  # Task 6 part 2
-    optimal_length = 1
-    max_mean_accuracy = 0
-    for length in range(1, 11):
-        word_list = extract_words(data, length)
-        mean_accuracy = k_fold_cross_validation(classifier, word_list, labels, k)
-
-        if mean_accuracy > max_mean_accuracy:
-            max_mean_accuracy = mean_accuracy
-            optimal_length = length
-
-    return optimal_length
-
-
-def evaluate_classifier_on_test_set(classifier, data, labels, test_data, test_labels, optimal_length):  # Task 6 part 3
-    word_list = extract_words(data, optimal_length)
-    classifier.fit(word_list, labels)
-    predictions = classifier.predict(test_data)
-
-    confusion_matrix = metrics.confusion_matrix(test_labels, predictions)
-    tp = confusion_matrix[0, 0]
-    tn = confusion_matrix[1, 1]
-    fp = confusion_matrix[1, 0]
-    fn = confusion_matrix[0, 1]
-
-    accuracy = metrics.accuracy_score(test_labels, predictions)
-    return confusion_matrix, tp, tn, fp, fn, accuracy
+def calculate_priors(total_pos_reviews, total_neg_reviews):  # Task 4 part 2
+    prior_pos = total_pos_reviews / (total_pos_reviews + total_neg_reviews)
+    prior_neg = total_neg_reviews / (total_pos_reviews + total_neg_reviews)
+    return prior_pos, prior_neg
 
 
 def main():  # Main Function
@@ -202,17 +160,19 @@ def main():  # Main Function
     main_df = load_excel_file(FILE_NAME)
     training_data, training_labels, test_data, test_labels = separate_data(main_df)
     # Task 2
-    filter_word_list = filter_reviews(training_data, 6, 50)
+    filter_word_list = filter_reviews(training_data, 8, 100)
     # Task 3
     word_counts_positive, word_counts_negative, word_presence_dict = featured_word_count_in_reviews(
             training_data, training_labels, filter_word_list)
     # Task 4
-    prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data,
-                                                                         training_labels)
+    likelihoods = calculate_likelihoods(filter_word_list, word_counts_positive, word_counts_negative)
+    sum_pos, sum_neg = count_positive_negative_reviews(main_df)
+    prior_pos, prior_neg = calculate_priors(sum_pos, sum_neg)
+    print(f"Likelihoods: {likelihoods}")
+    print(f"Prior Positive Reviews: {prior_pos}")
+    print(f"Prior Negative Reviews: {prior_neg}")
     # Task 5
-    predicted_sentiment = predict_sentiment("This movie is terrible",
-                                            prior_pos, prior_neg, likelihoods)
-    print(f"Predicted Sentiment: {predicted_sentiment}")
+
     # Task 6
 
 
