@@ -3,21 +3,25 @@
 #
 #   Machine Learning Assignment 1
 #
-
+import re
 import pandas as pd
 import math
+from sklearn import model_selection
+from sklearn import metrics
+from sklearn import neighbors
+import matplotlib.pyplot as plt
 
 FILE_NAME = 'movie_reviews.xlsx'
 
 
 def load_excel_file(file):  # Task 1 part 1
     df = pd.read_excel(file)  # Reads Excel file and sets it to df (dataframe)
-    return df
+    return df  # Return Dataframe
 
 
 def separate_data(df):  # Task 1 part 2
-    training_df = df[df['Split'] == 'train']
-    test_df = df[df['Split'] == 'test']
+    training_df = df[df['Split'] == 'train']  # Training Dataframe
+    test_df = df[df['Split'] == 'test']  # Test Dataframe
 
     training_data = training_df['Review'].tolist()
     training_labels = training_df['Sentiment'].tolist()
@@ -35,53 +39,63 @@ def separate_data(df):  # Task 1 part 2
     return training_data, training_labels, test_data, test_labels
 
 
-def remove_special_chars(data_list, min_word_len, min_word_count):  # Task 2
-    word_count_dict = {}
+def filter_reviews(reviews, min_word_length, min_word_appearances):
+    # Create a dictionary to keep track of word counts
+    word_counts = {}
 
-    for review in data_list:
-        review = review.lower()
-        words = review.split()
+    # Process each review in the list
+    for review in reviews:
+        # Make the review lowercase and remove non-alphanumeric characters
+        # https://stackoverflow.com/questions/6323296/python-remove-anything-that-is-not-a-letter-or-number
+        cleaned_review = re.sub(r'[^a-zA-Z0-9 ]', '', review.lower())
 
+        # Split the cleaned review into words
+        words = cleaned_review.split()
+
+        # Iterate through the words in the review
         for word in words:
-            if len(word) >= min_word_len:
-                if word in word_count_dict:
-                    word_count_dict[word] += 1
+            # Check if the word meets the minimum length requirement
+            if len(word) >= min_word_length:
+                # Update word counts in the dictionary
+                if word in word_counts:
+                    word_counts[word] += 1
                 else:
-                    word_count_dict[word] = 1
+                    word_counts[word] = 1
 
+    # Create a list of filtered words that meet the minimum appearance requirement
     filtered_words = []
-    for word, count in word_count_dict.items():
-        if count >= min_word_count:
+    for word, count in word_counts.items():
+        if count >= min_word_appearances:
             filtered_words.append(word)
-
     return filtered_words
 
 
-def count_word_occurrences_in_reviews(review_set, selected_words):  # Task 3
+def count_word_occurrences_in_reviews(review_set, filtered_words):  # Task 3
     word_presence_dict = {}
-    for word in selected_words:
+    for word in filtered_words:
         word_presence_dict[word] = 0
 
     for review in review_set:
         words_in_review = set(review.split())
 
-        for word in selected_words:
+        for word in filtered_words:
             if word in words_in_review:
                 word_presence_dict[word] += 1
 
+    print(word_presence_dict)
     return word_presence_dict
 
 
-def calculate_priors_and_likelihoods(words_dict, training_data):  # Task 4
+def calculate_priors_and_likelihoods(words_dict, training_data, training_labels):  # Task 4
     smooth_factor = 1
     likelihoods = {}
     pos_reviews = []
     neg_reviews = []
     word_list = list(words_dict.keys())
-    for review in training_data:
-        if review.endswith("positive"):
+    for i, review in enumerate(training_data):
+        if training_labels[i] == "positive":
             pos_reviews.append(review)
-        elif review.endswith("negative"):
+        elif training_labels[i] == "negative":
             neg_reviews.append(review)
 
     total_reviews = len(pos_reviews) + len(neg_reviews)
@@ -113,9 +127,58 @@ def predict_sentiment(new_review, prior_pos, prior_neg, likelihoods):  # Task 5
     log_posterior_pos = log_prior_pos + log_likelihood_pos
     log_posterior_neg = log_prior_neg + log_likelihood_neg
     if log_posterior_pos > log_posterior_neg:
-        return "positive"
+        prediction = "positive"
     else:
-        return "negative"
+        prediction = "negative"
+
+    return prediction
+
+
+def k_fold_cross_validation(classifier, data, labels, k):  # Task 6 part 1
+    accuracies = []
+    kf = model_selection.KFold(n_splits=k, shuffle=True, random_state=42)
+
+    for train_index, eval_index in kf.split(data):
+        train_data, eval_data = [data[i] for i in train_index], [data[i] for i in eval_index]
+        train_labels, eval_labels = [labels[i] for i in train_index], [labels[i] for i in eval_index]
+
+        classifier.fit(train_data, train_labels)
+        predictions = classifier.predict(eval_data)
+
+        accuracy = metrics.accuracy_score(eval_labels, predictions)
+        accuracies.append(accuracy)
+
+    mean_accuracy = sum(accuracies) / len(accuracies)
+    return mean_accuracy
+
+
+def find_optimal_word_length_parameter(classifier, data, labels, k):  # Task 6 part 2
+    optimal_length = 1
+    max_mean_accuracy = 0
+    for length in range(1, 11):
+        word_list = extract_words(data, length)
+        mean_accuracy = k_fold_cross_validation(classifier, word_list, labels, k)
+
+        if mean_accuracy > max_mean_accuracy:
+            max_mean_accuracy = mean_accuracy
+            optimal_length = length
+
+    return optimal_length
+
+
+def evaluate_classifier_on_test_set(classifier, data, labels, test_data, test_labels, optimal_length):  # Task 6 part 3
+    word_list = extract_words(data, optimal_length)
+    classifier.fit(word_list, labels)
+    predictions = classifier.predict(test_data)
+
+    confusion_matrix = metrics.confusion_matrix(test_labels, predictions)
+    tp = confusion_matrix[0, 0]
+    tn = confusion_matrix[1, 1]
+    fp = confusion_matrix[1, 0]
+    fn = confusion_matrix[0, 1]
+
+    accuracy = metrics.accuracy_score(test_labels, predictions)
+    return confusion_matrix, tp, tn, fp, fn, accuracy
 
 
 def main():  # Main Function
@@ -123,13 +186,16 @@ def main():  # Main Function
     main_df = load_excel_file(FILE_NAME)
     training_data, training_labels, test_data, test_labels = separate_data(main_df)
     # Task 2
-    filter_word_list = remove_special_chars(training_data, 3, 5)
+    filter_word_list = filter_reviews(training_data, 6, 50)
     # Task 3
     word_presence_dict = count_word_occurrences_in_reviews(training_data, filter_word_list)
     # Task 4
-    prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data)
+    prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data,
+                                                                         training_labels)
     # Task 5
-    predict_sentiment("This movie has huge potential and hits the mark in several ways", prior_pos, prior_neg, likelihoods)
+    predicted_sentiment = predict_sentiment("This movie is terrible",
+                                            prior_pos, prior_neg, likelihoods)
+    print(f"Predicted Sentiment: {predicted_sentiment}")
     # Task 6
 
 
