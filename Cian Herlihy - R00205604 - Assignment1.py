@@ -70,20 +70,36 @@ def filter_reviews(reviews, min_word_length, min_word_appearances):
     return filtered_words
 
 
-def count_word_occurrences_in_reviews(review_set, review_labels, filtered_words):  # Task 3
-    word_presence_dict = {}
+def featured_word_count_in_reviews(review_data, review_labels, filtered_words):  # Task 3
+    word_counts_positive = {}
+    word_counts_negative = {}
+
+    for i, review in enumerate(review_data):
+        words_in_review = review.split()
+        label = review_labels[i]
+
+        if label == "positive":
+            word_counts = word_counts_positive
+        else:
+            word_counts = word_counts_negative
+
+        for word in words_in_review:
+            if word in filtered_words:
+                if word in word_counts:
+                    word_counts[word] += 1
+                else:
+                    word_counts[word] = 1
+
+    word_occurrence_count = {}
     for word in filtered_words:
-        word_presence_dict[word] = 0
+        word_occurrence_count[word] = 0
 
-    for review in review_set:
-        words_in_review = set(review.split())
+    for word in filtered_words:
+        for review in review_data:
+            if word in review:
+                word_occurrence_count[word] += 1
 
-        for word in filtered_words:
-            if word in words_in_review:
-                word_presence_dict[word] += 1
-
-    print(word_presence_dict)
-    return word_presence_dict
+    return word_counts_positive, word_counts_negative, word_occurrence_count
 
 
 def calculate_priors_and_likelihoods(words_dict, training_data, training_labels):  # Task 4
@@ -188,7 +204,8 @@ def main():  # Main Function
     # Task 2
     filter_word_list = filter_reviews(training_data, 6, 50)
     # Task 3
-    word_presence_dict = count_word_occurrences_in_reviews(training_data, training_labels, filter_word_list)
+    word_counts_positive, word_counts_negative, word_presence_dict = featured_word_count_in_reviews(
+            training_data, training_labels, filter_word_list)
     # Task 4
     prior_pos, prior_neg, likelihoods = calculate_priors_and_likelihoods(word_presence_dict, training_data,
                                                                          training_labels)
