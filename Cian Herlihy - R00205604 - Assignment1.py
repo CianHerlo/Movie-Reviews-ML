@@ -15,11 +15,13 @@ FILE_NAME = 'movie_reviews.xlsx'
 
 
 def load_excel_file(file):  # Task 1 part 1
+    print("Task 1: Loading Excel File")
     df = pd.read_excel(file)  # Reads Excel file and sets it to df (dataframe)
     return df  # Return Dataframe
 
 
 def separate_data(df):  # Task 1 part 2
+    print("Task 1: Split data")
     training_df = df[df['Split'] == 'train']  # Training Dataframe
     test_df = df[df['Split'] == 'test']  # Test Dataframe
 
@@ -40,12 +42,14 @@ def separate_data(df):  # Task 1 part 2
 
 
 def count_positive_negative_reviews(df):
+    print("Task 4: Count positive / negative reviews")
     sum_pos = df['Sentiment'].eq('positive').sum()
     sum_neg = df['Sentiment'].eq('negative').sum()
     return sum_pos, sum_neg
 
 
 def filter_reviews(reviews, min_word_length, min_word_appearances):
+    print("Task 2: Filter Words from Reviews")
     # Create a dictionary to keep track of word counts
     word_counts = {}
 
@@ -76,9 +80,11 @@ def filter_reviews(reviews, min_word_length, min_word_appearances):
     return filtered_words
 
 
-def featured_word_count_in_reviews(review_data, review_labels, filtered_words):  # Task 3
+def featured_word_count_in_reviews(review_data, review_labels, filtered_words):
+    print("Task 3: Count Featured Words in Reviews")
     word_counts_positive = {}
     word_counts_negative = {}
+    word_occurrence_count = {word: 0 for word in filtered_words}
 
     for i, review in enumerate(review_data):
         words_in_review = review.split()
@@ -96,14 +102,8 @@ def featured_word_count_in_reviews(review_data, review_labels, filtered_words): 
                 else:
                     word_counts[word] = 1
 
-    word_occurrence_count = {}
-    for word in filtered_words:
-        word_occurrence_count[word] = 0
-
-    for word in filtered_words:
-        for review in review_data:
-            if word in review:
-                word_occurrence_count[word] += 1
+                if word in word_occurrence_count:
+                    word_occurrence_count[word] += 1
 
     return word_counts_positive, word_counts_negative, word_occurrence_count
 
@@ -134,9 +134,9 @@ def calculate_priors_and_likelihoods(words_dict, training_data, training_labels)
     return prior_pos, prior_neg, likelihoods
 
 
-def calculate_likelihoods(word_list, pos_counts, neg_counts):  # Task 4 part 1
+def calculate_likelihoods(word_list, pos_counts, neg_counts):  # Task 4
+    print("Task 4: Calculate Likelihoods")
     likelihoods = {}
-
     for word in word_list:
         total_word_count = pos_counts.get(word, 0) + neg_counts.get(word, 0)
         if total_word_count == 0:
@@ -146,13 +146,41 @@ def calculate_likelihoods(word_list, pos_counts, neg_counts):  # Task 4 part 1
             neg_likelihood = neg_counts.get(word, 0) / total_word_count
         likelihoods[word] = (pos_likelihood, neg_likelihood)
 
+    print(f"Likelihoods: {likelihoods}")
     return likelihoods
 
 
 def calculate_priors(total_pos_reviews, total_neg_reviews):  # Task 4 part 2
+    print("Task 4: Calculate Priors")
     prior_pos = total_pos_reviews / (total_pos_reviews + total_neg_reviews)
     prior_neg = total_neg_reviews / (total_pos_reviews + total_neg_reviews)
+    print(f"Prior Positive Reviews: {prior_pos}")
+    print(f"Prior Negative Reviews: {prior_neg}")
     return prior_pos, prior_neg
+
+
+def predict_sentiment(new_review, prior_pos, prior_neg, likelihoods):
+    print("Task 5: Predict Custom Review")
+    log_prior_pos = math.log(prior_pos)
+    log_prior_neg = math.log(prior_neg)
+    words = new_review.split()
+    log_likelihood_pos = 0
+    log_likelihood_neg = 0
+
+    for word in words:
+        if word in likelihoods:
+            log_likelihood_pos += math.log(likelihoods[word][0])
+            log_likelihood_neg += math.log(likelihoods[word][1])
+
+    log_posterior_pos = log_prior_pos + log_likelihood_pos
+    log_posterior_neg = log_prior_neg + log_likelihood_neg
+
+    if log_posterior_pos > log_posterior_neg:
+        prediction = "positive"
+    else:
+        prediction = "negative"
+    print(prediction)
+    return prediction
 
 
 def main():  # Main Function
@@ -163,16 +191,14 @@ def main():  # Main Function
     filter_word_list = filter_reviews(training_data, 8, 100)
     # Task 3
     word_counts_positive, word_counts_negative, word_presence_dict = featured_word_count_in_reviews(
-            training_data, training_labels, filter_word_list)
+        training_data, training_labels, filter_word_list)
     # Task 4
     likelihoods = calculate_likelihoods(filter_word_list, word_counts_positive, word_counts_negative)
     sum_pos, sum_neg = count_positive_negative_reviews(main_df)
     prior_pos, prior_neg = calculate_priors(sum_pos, sum_neg)
-    print(f"Likelihoods: {likelihoods}")
-    print(f"Prior Positive Reviews: {prior_pos}")
-    print(f"Prior Negative Reviews: {prior_neg}")
     # Task 5
-
+    prediction = predict_sentiment("This movie was fantastic, exhilarating, and tremendously choreographed. " +
+                                   "Close to perfection", prior_pos, prior_neg, likelihoods)
     # Task 6
 
 
