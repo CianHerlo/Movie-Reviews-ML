@@ -23,83 +23,84 @@ def load_excel_file(file):
 
 def separate_data(df):
     print("Task 1: Split data")
-    training_df = df[df['Split'] == 'train']                # Training Dataframe
-    test_df = df[df['Split'] == 'test']                     # Test Dataframe
+    training_df = df[df['Split'] == 'train']                # Training dataframe
+    test_df = df[df['Split'] == 'test']                     # Test dataframe
 
-    training_data = training_df['Review'].tolist()          # Gather Reviews into List for Training
-    training_labels = training_df['Sentiment'].tolist()     # Gather Sentiments into List for Training
-    test_data = test_df['Review'].tolist()                  # Gather Reviews into List for Test Data
-    test_labels = test_df['Sentiment'].tolist()             # Gather Sentiments into List for Test Data
+    training_data = training_df['Review'].tolist()          # Gather reviews into list for training
+    training_labels = training_df['Sentiment'].tolist()     # Gather sentiments into list for training
+    test_data = test_df['Review'].tolist()                  # Gather reviews into list for test data
+    test_labels = test_df['Sentiment'].tolist()             # Gather sentiments into list for test data
 
-    num_pos_training = training_labels.count('positive')    # Get Sum of Positive Reviews in Training Data
-    num_neg_training = training_labels.count('negative')    # Get Sum of Negative Reviews in Training Data
-    num_pos_test = test_labels.count('positive')            # Get Sum of Positive Reviews in Test Data
-    num_neg_test = test_labels.count('negative')            # Get Sum of Negative Reviews in Test Data
+    num_pos_training = training_labels.count('positive')    # Get sum of positive reviews in training data
+    num_neg_training = training_labels.count('negative')    # Get sum of negative reviews in training data
+    num_pos_test = test_labels.count('positive')            # Get sum of positive reviews in test data
+    num_neg_test = test_labels.count('negative')            # Get sum of negative reviews in test data
 
-    print(f"Training Data - Positive | Negative: {num_pos_training} | {num_neg_training}")  # Print Counts for Training Data
-    print(f"Test Data     - Positive | Negative: {num_pos_test} | {num_neg_test}")          # Print Counts for Test Data
-
-    return training_data, training_labels, test_data, test_labels   # Return Datasets
+    print(f"Training Data - Positive | Negative: {num_pos_training} | {num_neg_training}")  # Print counts for training data
+    print(f"Test Data     - Positive | Negative: {num_pos_test} | {num_neg_test}")          # Print counts for test data
+    return training_data, training_labels, test_data, test_labels                           # Return datasets
 
 
 def count_positive_negative_reviews(df):
     print("Task 4: Count positive / negative reviews")
-    sum_pos = df['Sentiment'].eq('positive').sum()  # Get Sum of Total Positive Reviews
-    sum_neg = df['Sentiment'].eq('negative').sum()  # Get Sum of Total Negative Reviews
-    return sum_pos, sum_neg                         # Return Sums
+    sum_pos = df['Sentiment'].eq('positive').sum()  # Get sum of total positive reviews
+    sum_neg = df['Sentiment'].eq('negative').sum()  # Get sum of total negative reviews
+    return sum_pos, sum_neg                         # Return sums
 
 
 def filter_reviews(reviews, min_word_length, min_word_appearances):
     print("Task 2: Filter Words from Reviews")
-    word_counts = {}        # Create Dictionary for Keeping Word Popularity
-    filtered_words = []     # Create Empty List for Words Being Filtered
-    for review in reviews:  # Loop through all Reviews
+    word_counts = {}        # Create dictionary for keeping word popularity
+    filtered_words = []     # Create empty list for words being filtered
+    for review in reviews:  # Loop through all reviews
 
         # https://stackoverflow.com/questions/6323296/python-remove-anything-that-is-not-a-letter-or-number
-        # Use Regex to get only Alpha-Numeric Characters and Make Reviews Lowercase
+        # Use regex to get only Alpha-Numeric characters and make reviews lowercase
         # I had another way of doing this previously which was much slower but found this on StackOverflow
         cleaned_review = re.sub(r'[^a-zA-Z0-9 ]', '', review.lower())
 
-        words = cleaned_review.split()          # Split Review into Individual Words
-        for word in words:                      # Loop Through each Word in Reviews
-            if len(word) >= min_word_length:    # Check if Word meets Minimum Length Requirements
-                if word in word_counts:         # If Word is already added to Dictionary
+        words = cleaned_review.split()          # Split review into individual words
+        for word in words:                      # Loop through each word in reviews
+            if len(word) >= min_word_length:    # Check if word meets minimum length requirements
+                if word in word_counts:         # If word is already added to dictionary
                     word_counts[word] += 1      # Increment by 1
-                else:                           # Word Does Not Appear in Dictionary
-                    word_counts[word] = 1       # Add Word to Dictionary and Set Value to 1
+                else:                           # Word does not appear in dictionary
+                    word_counts[word] = 1       # Add word to dictionary and Set Value to 1
 
     for word, count in word_counts.items():     # Word & Count is iterated through in a loop of all word_counts key-value pairs
-        if count >= min_word_appearances:       # If Word Appearances is >= Minimum Word Count Param
-            filtered_words.append(word)         # Add Word to filtered_words List
-    return filtered_words                       # Return List of Filtered Words
+        if count >= min_word_appearances:       # If word appearances is >= minimum word count param
+            filtered_words.append(word)         # Add word to filtered_words list
+    return filtered_words                       # Return list of filtered words
 
 
 def featured_word_count_in_reviews(review_data, review_labels, filtered_words):
     print("Task 3: Count Featured Words in Reviews")
-    word_counts_positive = {}
-    word_counts_negative = {}
-    word_occurrence_count = {word: 0 for word in filtered_words}
+    feature_count_pos_review = {}                  # Dictionary for positive review appearances for featured words
+    feature_count_neg_review = {}                  # Dictionary for negative review appearances for featured words
+    total_feature_word_count = {}                  # Create an empty dictionary to store word counts
+    for word in filtered_words:                    # Loop through all filtered words
+        total_feature_word_count[word] = 0         # Add filtered words as key to dictionary and set value to 0 to initialise the dictionary
 
-    for i, review in enumerate(review_data):
-        words_in_review = review.split()
-        label = review_labels[i]
+    for i, review in enumerate(review_data):    # For loop that will iterate through each review and i to keep count of index
+        words_in_review = review.split()        # Split review into individual words
+        label = review_labels[i]                # Retrieve sentiment of review
 
-        if label == "positive":
-            word_counts = word_counts_positive
-        else:
-            word_counts = word_counts_negative
+        if label == "positive":                     # If review is positive
+            word_counts = feature_count_pos_review  # Set word_counts as positive dictionary
+        else:                                       # If Review is Negative
+            word_counts = feature_count_neg_review  # Set word_counts as negative dictionary
 
-        for word in words_in_review:
-            if word in filtered_words:
-                if word in word_counts:
-                    word_counts[word] += 1
-                else:
-                    word_counts[word] = 1
+        for word in words_in_review:            # Loop through each word in review
+            if word in filtered_words:          # If word is in the filtered words list
+                if word in word_counts:         # If it exists in word_counts dictionary
+                    word_counts[word] += 1      # Increment by 1
+                else:                           # If word is not in dictionary yet
+                    word_counts[word] = 1       # Add to dictionary and set value to 1
 
-                if word in word_occurrence_count:
-                    word_occurrence_count[word] += 1
+                if word in total_feature_word_count:       # If word is in the dictionary total_feature_word_count
+                    total_feature_word_count[word] += 1    # Increment word count by 1
 
-    return word_counts_positive, word_counts_negative, word_occurrence_count
+    return feature_count_pos_review, feature_count_neg_review, total_feature_word_count    # Return counts
 
 
 def calculate_likelihoods(word_list, pos_counts, neg_counts):
