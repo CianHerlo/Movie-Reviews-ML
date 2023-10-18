@@ -75,27 +75,27 @@ def filter_reviews(reviews, min_word_length, min_word_appearances):
 
 def featured_word_count_in_reviews(review_data, review_labels, filtered_words):
     print("Task 3: Count Featured Words in Reviews")
-    feature_count_pos_review = {}                  # Dictionary for positive review appearances for featured words
-    feature_count_neg_review = {}                  # Dictionary for negative review appearances for featured words
-    total_feature_word_count = {}                  # Create an empty dictionary to store word counts
-    for word in filtered_words:                    # Loop through all filtered words
-        total_feature_word_count[word] = 0         # Add filtered words as key to dictionary and set value to 0 to initialise the dictionary
+    feature_count_pos_review = {}                   # Dictionary for positive review appearances for featured words
+    feature_count_neg_review = {}                   # Dictionary for negative review appearances for featured words
+    total_feature_word_count = {}                   # Create an empty dictionary to store word counts
+    for word in filtered_words:                     # Loop through all filtered words
+        total_feature_word_count[word] = 0          # Add filtered words as key to dictionary and set value to 0 to initialise the dictionary
 
-    for i, review in enumerate(review_data):    # For loop that will iterate through each review and i to keep count of index
-        words_in_review = review.split()        # Split review into individual words
-        label = review_labels[i]                # Retrieve sentiment of review
+    for i, review in enumerate(review_data):        # For loop that will iterate through each review and i to keep count of index
+        words_in_review = review.split()            # Split review into individual words
+        label = review_labels[i]                    # Retrieve sentiment of review
 
         if label == "positive":                     # If review is positive
             word_counts = feature_count_pos_review  # Set word_counts as positive dictionary
         else:                                       # If Review is Negative
             word_counts = feature_count_neg_review  # Set word_counts as negative dictionary
 
-        for word in words_in_review:            # Loop through each word in review
-            if word in filtered_words:          # If word is in the filtered words list
-                if word in word_counts:         # If it exists in word_counts dictionary
-                    word_counts[word] += 1      # Increment by 1
-                else:                           # If word is not in dictionary yet
-                    word_counts[word] = 1       # Add to dictionary and set value to 1
+        for word in words_in_review:                # Loop through each word in review
+            if word in filtered_words:              # If word is in the filtered words list
+                if word in word_counts:             # If it exists in word_counts dictionary
+                    word_counts[word] += 1          # Increment by 1
+                else:                               # If word is not in dictionary yet
+                    word_counts[word] = 1           # Add to dictionary and set value to 1
 
                 if word in total_feature_word_count:       # If word is in the dictionary total_feature_word_count
                     total_feature_word_count[word] += 1    # Increment word count by 1
@@ -105,51 +105,51 @@ def featured_word_count_in_reviews(review_data, review_labels, filtered_words):
 
 def calculate_likelihoods(word_list, pos_counts, neg_counts):
     print("Task 4: Calculate Likelihoods")
-    likelihoods = {}
-    for word in word_list:
-        total_word_count = pos_counts.get(word, 0) + neg_counts.get(word, 0)
-        if total_word_count == 0:
-            pos_likelihood = neg_likelihood = 0
-        else:
-            pos_likelihood = pos_counts.get(word, 0) / total_word_count
-            neg_likelihood = neg_counts.get(word, 0) / total_word_count
-        likelihoods[word] = (pos_likelihood, neg_likelihood)
+    likelihoods = {}        # Create dictionary for likelihoods
+    for word in word_list:  # Loop through words in filtered words list
+        total_word_count = pos_counts.get(word, 0) + neg_counts.get(word, 0)    # Get total count with pos + neg
+        if total_word_count == 0:                                               # If total is 0
+            pos_likelihood = neg_likelihood = 0                                 # Set positive & negative to 0 likelihood
+        else:                                                                   # Total more than 0
+            pos_likelihood = pos_counts.get(word, 0) / total_word_count         # Calculate likelihood for positive sentiment
+            neg_likelihood = neg_counts.get(word, 0) / total_word_count         # Calculate likelihood for negative sentiment
+        likelihoods[word] = (pos_likelihood, neg_likelihood)                    # Set value for word with a tuple of positive vs negative sentiment likelihood
 
-    print(f"Likelihoods: {likelihoods}")
-    return likelihoods
+    print(f"Likelihoods: {likelihoods}")                                        # Print likelihoods
+    return likelihoods                                                          # Return likelihoods dictionary
 
 
 def calculate_priors(total_pos_reviews, total_neg_reviews):
     print("Task 4: Calculate Priors")
-    prior_pos = total_pos_reviews / (total_pos_reviews + total_neg_reviews)
-    prior_neg = total_neg_reviews / (total_pos_reviews + total_neg_reviews)
-    print(f"Prior Positive Reviews: {prior_pos}")
-    print(f"Prior Negative Reviews: {prior_neg}")
-    return prior_pos, prior_neg
+    prior_pos = total_pos_reviews / (total_pos_reviews + total_neg_reviews)     # Calculate prior for positive sentiment
+    prior_neg = total_neg_reviews / (total_pos_reviews + total_neg_reviews)     # Calculate prior for negative sentiment
+    print(f"Prior Positive Reviews: {prior_pos}")                               # Print prior positive
+    print(f"Prior Negative Reviews: {prior_neg}")                               # Print prior negative
+    return prior_pos, prior_neg                                                 # Return priors
 
 
 def predict_sentiment(new_review, prior_pos, prior_neg, likelihoods):
     print("Task 5: Predict Custom Review")
-    log_prior_pos = math.log(prior_pos)
-    log_prior_neg = math.log(prior_neg)
-    words = new_review.split()
-    log_likelihood_pos = 0
-    log_likelihood_neg = 0
+    log_prior_pos = math.log(prior_pos)     # Calculates logarithm for prior positive
+    log_prior_neg = math.log(prior_neg)     # Calculates logarithm for prior negative
+    words = new_review.split()              # Split review into words
+    log_likelihood_pos = 0                  # Initialise var
+    log_likelihood_neg = 0                  # Initialise var
 
-    for word in words:
-        if word in likelihoods:
-            log_likelihood_pos += math.log(likelihoods[word][0])
-            log_likelihood_neg += math.log(likelihoods[word][1])
+    for word in words:                      # Loop through all words in review
+        if word in likelihoods:             # If word is in dictionary of likelihoods
+            log_likelihood_pos += math.log(likelihoods[word][0])    # Add logarithm of positive sentiment likelihood
+            log_likelihood_neg += math.log(likelihoods[word][1])    # Add logarithm of negative sentiment likelihood
 
-    log_posterior_pos = log_prior_pos + log_likelihood_pos
-    log_posterior_neg = log_prior_neg + log_likelihood_neg
+    log_posterior_pos = log_prior_pos + log_likelihood_pos  # Sum priors and likelihoods for positive sentiments
+    log_posterior_neg = log_prior_neg + log_likelihood_neg  # Sum priors and likelihoods for negative sentiments
 
-    if log_posterior_pos > log_posterior_neg:
-        prediction = "positive"
-    else:
-        prediction = "negative"
-    print(prediction)
-    return prediction
+    if log_posterior_pos > log_posterior_neg:   # If positive is more than negative sentiment
+        prediction = "positive"                 # Predict Positive
+    else:                                       # If positive is equal or less than negative sentiment
+        prediction = "negative"                 # Predict Negative
+    print(prediction)                           # Print prediction
+    return prediction                           # Return prediction
 
 
 def k_fold_cross_validation(classifier, data, labels, k):
@@ -189,10 +189,10 @@ def main():  # Main Function
     # Task 2
     filter_word_list = filter_reviews(training_data, 8, 100)
     # Task 3
-    word_counts_positive, word_counts_negative, word_presence_dict = featured_word_count_in_reviews(
+    feature_count_pos_review, feature_count_neg_review, total_feature_word_count = featured_word_count_in_reviews(
         training_data, training_labels, filter_word_list)
     # Task 4
-    likelihoods = calculate_likelihoods(filter_word_list, word_counts_positive, word_counts_negative)
+    likelihoods = calculate_likelihoods(filter_word_list, feature_count_pos_review, feature_count_neg_review)
     sum_pos, sum_neg = count_positive_negative_reviews(main_df)
     prior_pos, prior_neg = calculate_priors(sum_pos, sum_neg)
     # Task 5
