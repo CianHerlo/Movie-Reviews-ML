@@ -152,36 +152,6 @@ def predict_sentiment(new_review, prior_pos, prior_neg, likelihoods):
     return prediction                           # Return prediction
 
 
-def k_fold_cross_validation(classifier, data, labels, k):
-    accuracies = []
-    kf = model_selection.KFold(n_splits=k, shuffle=True, random_state=42)
-
-    for train_index, eval_index in kf.split(data):
-        train_data, eval_data = [data[i] for i in train_index], [data[i] for i in eval_index]
-        train_labels, eval_labels = [labels[i] for i in train_index], [labels[i] for i in eval_index]
-
-        # Train the classifier on the training data
-        classifier.fit(train_data, train_labels)
-
-        # Make predictions on the evaluation data
-        predictions = classifier.predict(eval_data)
-
-        # Calculate accuracy
-        accuracy = calculate_accuracy(eval_labels, predictions)
-        accuracies.append(accuracy)
-
-    mean_accuracy = sum(accuracies) / len(accuracies)
-    return mean_accuracy
-
-
-def calculate_accuracy(true_labels, predicted_labels):
-    # Calculate the accuracy of predictions
-    correct = sum(1 for true, pred in zip(true_labels, predicted_labels) if true == pred)
-    total = len(true_labels)
-    accuracy = correct / total
-    return accuracy
-
-
 def main():  # Main Function
     # Task 1
     main_df = load_excel_file(FILE_NAME)
@@ -199,7 +169,6 @@ def main():  # Main Function
     prediction = predict_sentiment("This movie was fantastic, exhilarating, and tremendously choreographed. " +
                                    "Close to perfection", prior_pos, prior_neg, likelihoods)
     # Task 6
-    mean_accuracy = k_fold_cross_validation(classifier, training_data, training_labels, 10)
 
 
 if __name__ == '__main__':
