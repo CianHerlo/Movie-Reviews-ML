@@ -1,10 +1,6 @@
 import re
 import pandas as pd
 import math
-from sklearn import model_selection
-from sklearn import metrics
-from sklearn import neighbors
-import matplotlib.pyplot as plt
 
 #
 #   Cian Herlihy - R00205604
