@@ -99,26 +99,26 @@ def featured_word_count_in_reviews(review_data, review_labels, filtered_words):
     return feature_count_pos_review, feature_count_neg_review, total_feature_word_count    # Return counts
 
 
-def calculate_likelihoods(word_list, pos_counts, neg_counts):
+def calculate_likelihoods(word_list, pos_counts, neg_counts, alpha):
     print("Task 4: Calculate Likelihoods")
     likelihoods = {}        # Create dictionary for likelihoods
     for word in word_list:  # Loop through words in filtered words list
-        total_word_count = pos_counts.get(word, 0) + neg_counts.get(word, 0)    # Get total count with pos + neg
-        if total_word_count == 0:                                               # If total is 0
-            pos_likelihood = neg_likelihood = 0                                 # Set positive & negative to 0 likelihood
-        else:                                                                   # Total more than 0
-            pos_likelihood = pos_counts.get(word, 0) / total_word_count         # Calculate likelihood for positive sentiment
-            neg_likelihood = neg_counts.get(word, 0) / total_word_count         # Calculate likelihood for negative sentiment
-        likelihoods[word] = (pos_likelihood, neg_likelihood)                    # Set value for word with a tuple of positive vs negative sentiment likelihood
+        total_word_count = pos_counts.get(word, 0) + neg_counts.get(word, 0)                # Get total count with pos + neg
+        if total_word_count == 0:                                                           # If total is 0
+            pos_likelihood = neg_likelihood = 0                                             # Set positive & negative to 0 likelihood
+        else:                                                                               # Total more than 0
+            pos_likelihood = (pos_counts.get(word, 0) + alpha) / (total_word_count + 2*alpha)   # Calculate likelihood for positive sentiment with smoothing factor
+            neg_likelihood = (neg_counts.get(word, 0) + alpha) / (total_word_count + 2*alpha)   # Calculate likelihood for negative sentiment with smoothing factor
+        likelihoods[word] = (pos_likelihood, neg_likelihood)                                # Set value for word with a tuple of positive vs negative sentiment likelihood
 
-    print(f"Likelihoods: {likelihoods}")                                        # Print likelihoods
-    return likelihoods                                                          # Return likelihoods dictionary
+    print(f"Likelihoods: {likelihoods}")                                                    # Print likelihoods
+    return likelihoods                                                                      # Return likelihoods dictionary
 
 
-def calculate_priors(total_pos_reviews, total_neg_reviews):
+def calculate_priors(total_pos_reviews, total_neg_reviews, alpha):
     print("Task 4: Calculate Priors")
-    prior_pos = total_pos_reviews / (total_pos_reviews + total_neg_reviews)     # Calculate prior for positive sentiment
-    prior_neg = total_neg_reviews / (total_pos_reviews + total_neg_reviews)     # Calculate prior for negative sentiment
+    prior_pos = (total_pos_reviews + alpha) / (total_pos_reviews + total_neg_reviews + 2*alpha)     # Calculate prior for positive sentiment with smoothing factor
+    prior_neg = (total_neg_reviews + alpha) / (total_pos_reviews + total_neg_reviews + 2*alpha)     # Calculate prior for negative sentiment with smoothing factor
     print(f"Prior Positive Reviews: {prior_pos}")                               # Print prior positive
     print(f"Prior Negative Reviews: {prior_neg}")                               # Print prior negative
     return prior_pos, prior_neg                                                 # Return priors
@@ -158,9 +158,10 @@ def main():  # Main Function
     feature_count_pos_review, feature_count_neg_review, total_feature_word_count = featured_word_count_in_reviews(
         training_data, training_labels, filter_word_list)
     # Task 4
-    likelihoods = calculate_likelihoods(filter_word_list, feature_count_pos_review, feature_count_neg_review)
+    alpha = 1   # alpha = smoothing factor
+    likelihoods = calculate_likelihoods(filter_word_list, feature_count_pos_review, feature_count_neg_review, alpha)
     sum_pos, sum_neg = count_positive_negative_reviews(main_df)
-    prior_pos, prior_neg = calculate_priors(sum_pos, sum_neg)
+    prior_pos, prior_neg = calculate_priors(sum_pos, sum_neg, alpha)
     # Task 5
     prediction = predict_sentiment("This movie was fantastic, exhilarating, and tremendously choreographed. " +
                                    "Close to perfection", prior_pos, prior_neg, likelihoods)
